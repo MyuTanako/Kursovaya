@@ -9,13 +9,13 @@
 
 struct words
 {
-	int pos;
-	int length;
-	char word[32];
-	struct words *next;
+	int pos; // РџРѕР·РёС†РёСЏ
+	int length; // Р”Р»РёРЅР°
+	char word[32]; // РЎР»РѕРІРѕ
+	struct words *next; // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° СЃР»РµРґСѓСЋС‰РёР№ СЌР»РµРјРµРЅС‚
 };
 
-struct words* init(void) // Принимаемые данные для головы списка
+struct words *init(void) // РџСЂРёРЅРёРјР°РµРјС‹Рµ РґР°РЅРЅС‹Рµ РґР»СЏ РіРѕР»РѕРІС‹ СЃРїРёСЃРєР°
 {
 	struct words *lst;
 	lst = (struct words*)malloc(sizeof(struct words));
@@ -29,12 +29,12 @@ struct words* Appendlist(struct words* headRef)
 	struct words* lst;
 	lst = (struct words*)malloc(sizeof(struct words));
 	lst->next = NULL;
-	// если список пуст
+	// РµСЃР»Рё СЃРїРёСЃРѕРє РїСѓСЃС‚
 	if (current == NULL) {
 		headRef = lst;
 	}
 	else {
-		// иначе
+		// РёРЅР°С‡Рµ
 		while (current->next != NULL) {
 			current = current->next;
 		}
@@ -42,7 +42,18 @@ struct words* Appendlist(struct words* headRef)
 	}
 	return(lst);
 }
-
+void loadSlovar(struct words *head)
+{
+	FILE *fin;
+	struct words *current;
+	fin = fopen("slovar.txt", "r");
+	while (!feof(fin))
+	{
+		current = Appendlist(head);
+		fscanf(fin, "%s %d %d\n", current->word, &current->pos, &current->length);
+	}
+	fclose(fin);
+}
 
 void freeStruct(struct words * head)
 {
@@ -57,7 +68,7 @@ void freeStruct(struct words * head)
 	free(current);
 }
 
-void inputFile(struct words * head)
+void inputFile(struct words *head) //РєРѕРґРµСЂ
 {
 	int pos = 0, pastPos = 0;
 	int length = 1, pastLength = 1;
@@ -68,18 +79,17 @@ void inputFile(struct words * head)
 	char line[MAXLEN];
 	char word[32], pastWord[32];
 	int empty;
-	struct words * current;
-	struct words * newWord;
+	struct words *current;
+	struct words *newWord;
 	finp = fopen("wordsREAD.txt", "r");
 	fout = fopen("wordsREC.txt", "w");
 	while (!feof(finp))
 	{
 		ptr = fgets(line, sizeof(line), finp);
-		pos = 0;
 		do
 		{
 			empty = NO;
-			word[length-1] = *ptr;
+			word[length - 1] = *ptr;
 			word[length] = '\0';
 			current = head;
 			while (current != NULL)
@@ -97,16 +107,19 @@ void inputFile(struct words * head)
 			}
 			if (!empty)
 			{
-				newWord = Appendlist(head);
-				newWord->length = length;
-				newWord->pos = pos - length + 1;
-				strcpy(newWord->word, word);
+				if (*ptr != '\n')
+				{
+					newWord = Appendlist(head);
+					newWord->length = length;
+					newWord->pos = pos - length + 1;
+					strcpy(newWord->word, word);
+				}
 				if (flag)
 				{
 					fprintf(fout, "[%d|%d]", pastPos, pastLength);
 					flag = NO;
 				}
-				fprintf(fout, "%s", word+length-1);
+				fprintf(fout, "%s", word + length - 1);
 				length = 1;
 			}
 			else
@@ -115,7 +128,7 @@ void inputFile(struct words * head)
 			}
 			pos++;
 			ptr++;
-		} while (*ptr || *ptr == '\n');
+		} while (*ptr);
 		if (flag)
 		{
 			fprintf(fout, "[%d|%d]", pastPos, pastLength);
@@ -125,16 +138,17 @@ void inputFile(struct words * head)
 	fclose(finp);
 }
 
-void deCode(void)
+void deCode(struct words *head)
 {
 	FILE *finp;
 	FILE *fout;
+	struct words *current;
 	fout = fopen("wordsRECdecode.txt", "w");
 	finp = fopen("wordsREC.txt", "r");
 	char *ptr;
 	char *begin;
 	char buf[100];
-	char newLine[MAXLEN];
+	char newLine[MAXLEN*10];
 	int pos, length, posBegin;
 	int i, gPos = 0;
 	int j = 0;
@@ -150,7 +164,7 @@ void deCode(void)
 				posBegin = gPos;
 				gPos++;
 				ptr++;
-				i=0;
+				i = 0;
 				while (*ptr != '|')
 				{
 					buf[i] = *ptr;
@@ -172,19 +186,30 @@ void deCode(void)
 				}
 				buf[i] = '\0';
 				length = atoi(buf);
-				for (i = 0; i < length; i++)
+				current = head->next;
+				while (current != NULL)
 				{
-					newLine[j++] = newLine[pos + i];
+					if (current->pos == pos && current->length == length)
+					{
+						for (i = 0; i < length; i++)
+						{
+							newLine[j++] = current->word[i];
+						}
+						break;
+					}
+					current = current->next;
 				}
 			}
 			else
 			{
-				newLine[j++] = *ptr;
+				if (*ptr)
+					newLine[j++] = *ptr;
 			}
 			gPos++;
-		} while (*ptr++);
-		fprintf(fout, "%s", newLine);
+		} while (*++ptr);
 	}
+	newLine[j] = '\0';
+	fprintf(fout, "%s", newLine);
 	fclose(finp);
 	fclose(fout);
 }
@@ -199,41 +224,43 @@ void recordData(struct words* headRef)
 		fprintf(fpin, "%s %d %d\n", current->word, current->pos, current->length);
 		current = current->next;
 	}
-	fclose(fpin); // закрыть входной файл
+	fclose(fpin); // Р·Р°РєСЂС‹С‚СЊ РІС…РѕРґРЅРѕР№ С„Р°Р№Р»
 }
 
 void main(void)
 {
-	struct words* firstWord;
+	struct words* firstWord = init();
 	char callback_main;
 	//firstWord = inputWords();
-	/* Объявление параметров консоли*/
+	/* РћР±СЉСЏРІР»РµРЅРёРµ РїР°СЂР°РјРµС‚СЂРѕРІ РєРѕРЅСЃРѕР»Рё*/
 	system("chcp 1251");
 	system("cls");
+	loadSlovar(firstWord);
 	do
 	{
 		system("cls");
-		printf("[0] Выйти из программы\n[1] Кодировать текст\n[2] Декодировать текст\nВыберите пункт из списка : ");
-		scanf("%s", &callback_main);
+		printf("[0] Р’С‹Р№С‚Рё РёР· РїСЂРѕРіСЂР°РјРјС‹\n[1] РљРѕРґРёСЂРѕРІР°С‚СЊ С‚РµРєСЃС‚\n[2] Р”РµРєРѕРґРёСЂРѕРІР°С‚СЊ С‚РµРєСЃС‚\nР’С‹Р±РµСЂРёС‚Рµ РїСѓРЅРєС‚ РёР· СЃРїРёСЃРєР° : ");
+		scanf("%c", &callback_main);
 		switch (callback_main)
 		{
-		case '1': 
+		case '1':
 			system("cls");
+			freeStruct(firstWord);
 			firstWord = init();
 			inputFile(firstWord);
-			printf("Смотри в файл wordREC\n");
+			printf("РЎРјРѕС‚СЂРё РІ С„Р°Р№Р» wordREC\n");
 			recordData(firstWord);
-			freeStruct(firstWord);
 			system("pause");
 			break;
 		case '2':
 			system("cls");
-			deCode();
-			printf("Смотри в файл wordRECdecode\n");
+			deCode(firstWord);
+			printf("РЎРјРѕС‚СЂРё РІ С„Р°Р№Р» wordRECdecode\n");
 			system("pause");
 			break;
 		default:
 			break;
 		}
 	} while (callback_main != '0');
+	freeStruct(firstWord);
 }
