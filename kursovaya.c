@@ -11,7 +11,7 @@ struct words
 {
 	int pos; // Позиция
 	int length; // Длина
-	char word[32]; // Слово
+	char word[MAXLEN]; // Слово
 	struct words *next; // Указатель на следующий элемент
 };
 
@@ -45,12 +45,50 @@ struct words* Appendlist(struct words* headRef)
 void loadSlovar(struct words *head)
 {
 	FILE *fin;
-	struct words *current;
+	struct words *current = NULL;
+	int pos=0, length=0;
+	int s = 0;
+	int i=0;
+	int j = 0;
+	char buf[10];
+	char *ptr;
+	char word[MAXLEN];
 	fin = fopen("slovar.txt", "r");
 	while (!feof(fin))
 	{
-		current = Appendlist(head);
-		fscanf(fin, "%s %d %d\n", current->word, &current->pos, &current->length);
+		fgets(word, sizeof(word), fin);
+		s = strlen(word);
+		word[s - 1] = '\0';
+		ptr = word;
+		i %= 2;
+		switch (i)
+		{
+		case 0:
+			current = Appendlist(head);
+			strcpy(current->word, word);
+			break;
+		case 1:
+			j = 0;
+			while (*ptr != ' ')
+			{
+				buf[j++] = *ptr;
+				ptr++;
+			}
+			buf[j] = '\0';
+			current->pos = atoi(buf);
+			j = 0;
+			while (*ptr != '\0')
+			{
+				buf[j++] = *ptr;
+				ptr++;
+			}
+			buf[j] = '\0';
+			current->length = atoi(buf);
+			break;
+		default:
+			break;
+		}
+		i++;
 	}
 	fclose(fin);
 }
@@ -77,7 +115,7 @@ void inputFile(struct words *head) //кодер
 	FILE *fout;
 	char *ptr;
 	char line[MAXLEN];
-	char word[32], pastWord[32];
+	char word[MAXLEN], pastWord[MAXLEN];
 	int empty;
 	struct words *current;
 	struct words *newWord;
@@ -148,7 +186,7 @@ void deCode(struct words *head)
 	char *ptr;
 	char *begin;
 	char buf[100];
-	char newLine[MAXLEN*10];
+	char newLine[MAXLEN * 10];
 	int pos, length, posBegin;
 	int i, gPos = 0;
 	int j = 0;
@@ -221,7 +259,8 @@ void recordData(struct words* headRef)
 	fpin = fopen("slovar.txt", "w");
 	while (current != NULL)
 	{
-		fprintf(fpin, "%s %d %d\n", current->word, current->pos, current->length);
+		fprintf(fpin, "%s\n", current->word);
+		fprintf(fpin, "%d %d\n", current->pos, current->length);
 		current = current->next;
 	}
 	fclose(fpin); // закрыть входной файл
